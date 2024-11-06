@@ -47,7 +47,7 @@ def create_tab_file(output_tab_file, coordinates):
     print(f"Line-based TAB saved as {output_tab_file}.shp")
 
 # File paths
-kmz_file_path = 'VoLTE_PCI.kmz'
+kmz_file_path = 'Route.kmz'
 output_kml_file = 'output_line.kml'
 output_tab_file = 'output_line.tab'
 

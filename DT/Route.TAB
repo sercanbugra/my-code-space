@@ -1,0 +1,13 @@
+!table
+!version 300
+!charset WindowsTurkish
+
+Definition Table
+  Type NATIVE Charset "WindowsTurkish"
+  Fields 1
+    ROUTE Char (10) ;
+begin_metadata
+"\IsReadOnly" = "FALSE"
+"\MapInfo" = ""
+"\MapInfo\TableID" = "ff23aca3-8269-4d62-8bd6-88562d2c99e5"
+end_metadata
