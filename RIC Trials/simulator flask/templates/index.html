@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cell Traffic Simulator</title>
+    <style>
+        /* Display area styling */
+        #display-area {
+            width: 500px;
+            height: 500px;
+            margin: 50px auto;
+            border: 1px solid #ccc;
+            position: relative;
+            background-color: #f5f5f5;
+            border-radius: 80%;
+            overflow: hidden;
+        }
+
+        /* Cell styling */
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #4caf50;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        #cell_1 { top: 50px; left: 170px; }
+        #cell_2 { top: 270px; left: 60px; }
+        #cell_3 { top: 270px; right: 60px; }
+
+        /* UE Dot styling */
+        .ue-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            transition: opacity 0.3s;
+        }
+
+        /* Console styling */
+        #console {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            width: 750px;
+            height: 300px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            border-radius: 10px;
+        }
+
+        /* UE Count Table styling */
+        #ue-count-table {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #ue-count-table table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        #ue-count-table th, #ue-count-table td {
+            padding: 5px;
+            text-align: center;
+        }
+
+        /* Traffic Steering Threshold Section */
+        #threshold-section {
+            margin-top: 90px;
+            text-align: center;
+        }
+        #threshold-section input {
+            width: 150px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2 style="text-align: center;">Cell Traffic Simulator</h2>
+
+    <!-- Console -->
+    <div id="console">
+        <h3>curl Console Output</h3>
+        <pre id="console-output"></pre>
+    </div>
+
+    <!-- Display Area for Cells -->
+    <div id="display-area">
+        <div id="cell_1" class="cell">Cell 1</div>
+        <div id="cell_2" class="cell">Cell 2</div>
+        <div id="cell_3" class="cell">Cell 3</div>
+    </div>
+
+    <!-- UE Count Table -->
+    <div id="ue-count-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cell</th>
+                    <th>UE Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Cell 1</td><td id="count-cell-1">0</td></tr>
+                <tr><td>Cell 2</td><td id="count-cell-2">0</td></tr>
+                <tr><td>Cell 3</td><td id="count-cell-3">0</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Traffic Steering Threshold Section -->
+    <div id="threshold-section">
+        <label for="threshold">Traffic Steering Threshold (50-99): </label>
+        <input type="number" id="threshold" value="80" min="50" max="99">
+        <button onclick="updateThreshold()">Update Threshold</button>
+    </div>
+
+    <script>
+        const displayArea = document.getElementById("display-area");
+        const consoleOutput = document.getElementById("console-output");
+        const cells = {
+            cell_1: { x: 200, y: 80, color: '#4caf50' },
+            cell_2: { x: 100, y: 300, color: '#2196f3' },
+            cell_3: { x: 300, y: 300, color: '#f44336' }
+        };
+        const maxDots = 250;
+        const minVisibleTime = 3000;
+        let ueDots = [];
+        const cellCounts = { cell_1: 0, cell_2: 0, cell_3: 0 };
+        let cellSteeringTriggered = { cell_1: false, cell_2: false, cell_3: false };
+        let threshold = 80;
+
+        // Console logs storage
+        let consoleLogs = [];
+
+        // Function to generate a random position around the display area
+        function generateRandomPosition() {
+            return {
+                x: Math.random() * 380 + 10,
+                y: Math.random() * 380 + 10
+            };
+        }
+
+        // Function to calculate the closest cell
+        function getClosestCell(x, y) {
+            let closestCell = null;
+            let minDistance = Infinity;
+            for (const [cellId, cell] of Object.entries(cells)) {
+                const distance = Math.sqrt(Math.pow(cell.x - x, 2) + Math.pow(cell.y - y, 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestCell = cellId;
+                }
+            }
+            return closestCell;
+        }
+
+        // Function to create multiple UE dots per second
+        function createUeDots() {
+            if (ueDots.length >= maxDots) return;
+
+            const numDots = Math.floor(Math.random() * 30) + 1;
+            for (let i = 0; i < numDots; i++) {
+                const position = generateRandomPosition();
+                const closestCell = getClosestCell(position.x, position.y);
+
+                let dotColor;
+                if (closestCell === "cell_1") {
+                    dotColor = '#4caf50';
+                } else if (closestCell === "cell_2") {
+                    dotColor = '#2196f3';
+                } else if (closestCell === "cell_3") {
+                    dotColor = '#f44336';
+                }
+
+                const dot = document.createElement('div');
+                dot.classList.add('ue-dot');
+                dot.style.backgroundColor = dotColor;
+                dot.style.left = `${position.x}px`;
+                dot.style.top = `${position.y}px`;
+
+                displayArea.appendChild(dot);
+                ueDots.push({ dot, x: position.x, y: position.y, cell: closestCell });
+            }
+            updateUeCount();
+        }
+
+        // Function to update UE count and send to Flask server (xApp)
+        function updateUeCount() {
+            const currentCounts = { cell_1: 0, cell_2: 0, cell_3: 0 };
+
+            // Calculate UE count for each cell
+            ueDots.forEach(dot => {
+                const closestCell = getClosestCell(dot.x, dot.y);
+                currentCounts[closestCell]++;
+            });
+
+            // Update the UI with the latest counts
+            document.getElementById("count-cell-1").innerText = currentCounts.cell_1;
+            document.getElementById("count-cell-2").innerText = currentCounts.cell_2;
+            document.getElementById("count-cell-3").innerText = currentCounts.cell_3;
+
+            // Log each cell count in the console area
+            updateConsole(`UEs camped on - cell_1: ${currentCounts.cell_1}, cell_2: ${currentCounts.cell_2}, cell_3: ${currentCounts.cell_3}`);
+
+            // Loop through each cell to check if threshold exceeded and POST if needed
+            for (const [cellId, load] of Object.entries(currentCounts)) {
+                if (load > threshold && !cellSteeringTriggered[cellId]) {
+                    cellSteeringTriggered[cellId] = true;
+
+                    // Find the cell with the lowest traffic (load)
+                    let targetCell = null;
+                    let minLoad = Infinity;
+
+                    for (const [checkCellId, checkLoad] of Object.entries(currentCounts)) {
+                        if (checkCellId !== cellId && checkLoad < minLoad) {
+                            minLoad = checkLoad;
+                            targetCell = checkCellId;
+                        }
+                    }
+
+                    if (targetCell) {
+                        // Prepare data for POST request to offload 5 users
+                        const postData = {
+                            "ue_id": `ue_${Date.now()}`,  // Unique UE ID for each offload action
+                            "serving_cell": cellId,
+                            "target_cell": targetCell,
+                            "users_to_offload": 5  // Offload 5 users
+                        };
+
+                        // Send the offload request to the backend (xApp)
+                        fetch('http://localhost:5001/traffic_steering', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(postData)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Log the traffic steering action in the console
+                            updateConsole(`Traffic Steering triggered from ${cellId} to ${targetCell}: Offloaded 5 users.`);
+                        })
+                        .catch(error => {
+                            updateConsole(`Error: ${error}`);
+                        });
+                    } else {
+                        updateConsole(`No suitable target cell for steering. All cells are congested.`);
+                    }
+                } else if (load <= threshold && cellSteeringTriggered[cellId]) {
+                    // Reset steering trigger if load drops below threshold
+                    cellSteeringTriggered[cellId] = false;
+                    updateConsole(`Load for ${cellId} dropped below threshold; resetting steering state`);
+                }
+            }
+        }
+
+        // Function to update console output with only last 10 records
+        function updateConsole(message) {
+            const date = new Date().toLocaleTimeString();
+            consoleLogs.push(`[${date}] ${message}`);
+            if (consoleLogs.length > 10) {
+                consoleLogs.shift(); // Remove the oldest log if there are more than 10
+            }
+            consoleOutput.innerText = consoleLogs.join('\n');
+        }
+
+        // Function to update traffic steering threshold
+        function updateThreshold() {
+            threshold = parseInt(document.getElementById('threshold').value);
+            updateConsole(`Traffic Steering Threshold updated to ${threshold}`);
+        }
+
+        // Periodically generate new UE dots and update the count
+        setInterval(createUeDots, 1500);
+        //setInterval(updateUeCount, 1500);
+    </script>
+</body>
+</html>

@@ -135,7 +135,6 @@
     </div>
 
     <script>
-            
         const displayArea = document.getElementById("display-area");
         const consoleOutput = document.getElementById("console-output");
         const cells = {
@@ -148,6 +147,88 @@
         let ueDots = [];
         const cellCounts = { cell_1: 0, cell_2: 0, cell_3: 0 };
         let postCommands = [];
+
+        // Function to generate a random position around the display area
+        function generateRandomPosition() {
+            return {
+                x: Math.random() * 380 + 10,
+                y: Math.random() * 380 + 10
+            };
+        }
+
+        // Function to calculate the closest cell
+        function getClosestCell(x, y) {
+            let closestCell = null;
+            let minDistance = Infinity;
+            for (const [cellId, cell] of Object.entries(cells)) {
+                const distance = Math.sqrt(Math.pow(cell.x - x, 2) + Math.pow(cell.y - y, 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestCell = cellId;
+                }
+            }
+            return closestCell;
+        }
+
+        // Function to create multiple UE dots per second
+        function createUeDots() {
+            if (ueDots.length >= maxDots) return;
+
+            const numDots = Math.floor(Math.random() * 30) + 1;
+            for (let i = 0; i < numDots; i++) {
+                const position = generateRandomPosition();
+                const closestCell = getClosestCell(position.x, position.y);
+
+                let dotColor;
+                if (closestCell === "cell_1") {
+                    dotColor = '#4caf50';  // Green for Cell 1
+                } else if (closestCell === "cell_2") {
+                    dotColor = '#2196f3';  // Blue for Cell 2
+                } else if (closestCell === "cell_3") {
+                    dotColor = '#f44336';  // Red for Cell 3
+                }
+
+                const dot = document.createElement('div');
+                dot.classList.add('ue-dot');
+                dot.style.backgroundColor = dotColor;
+                dot.style.left = `${position.x}px`;
+                dot.style.top = `${position.y}px`;
+
+                displayArea.appendChild(dot);
+                ueDots.push({ dot, x: position.x, y: position.y, cell: closestCell });
+            }
+            updateUeCount();
+        }
+
+        // Function to update UE count and send to Flask server
+        function updateUeCount() {
+            const cellCounts = { cell_1: 0, cell_2: 0, cell_3: 0 };
+
+            ueDots.forEach(dot => {
+                const closestCell = getClosestCell(dot.x, dot.y);
+                cellCounts[closestCell]++;
+            });
+
+            document.getElementById("count-cell-1").innerText = cellCounts.cell_1;
+            document.getElementById("count-cell-2").innerText = cellCounts.cell_2;
+            document.getElementById("count-cell-3").innerText = cellCounts.cell_3;
+
+            Object.entries(cellCounts).forEach(([cellId, count]) => {
+                const consoleMessage = `Cell Load update for ${cellId} with load: ${count}`;
+                postCommands.push({ message: consoleMessage });
+
+                if (postCommands.length > 10) {
+                    postCommands.shift(); // Remove the oldest message
+                }
+
+                updateConsole();
+            });
+        }
+
+        // Function to update console output
+        function updateConsole() {
+            consoleOutput.innerHTML = postCommands.map(cmd => cmd.message).join('\n');
+        }
 
         // Function to update traffic steering threshold in Flask server
         function updateCellLoadThreshold() {
@@ -175,152 +256,7 @@
         // Event listener for threshold change
         document.getElementById("threshold").addEventListener("input", updateCellLoadThreshold);
 
-        // Function to generate a random position around the display area
-        function generateRandomPosition() {
-            return {
-                x: Math.random() * 380 + 10,
-                y: Math.random() * 380 + 10
-            };
-        }
-
-        // Function to calculate the closest cell
-        function getClosestCell(x, y) {
-            let closestCell = null;
-            let minDistance = Infinity;
-            for (const [cellId, cell] of Object.entries(cells)) {
-                const distance = Math.sqrt(Math.pow(cell.x - x, 2) + Math.pow(cell.y - y, 2));
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestCell = cellId;
-                }
-            }
-            return closestCell;
-        }
-
-        // Function to update UE count and send to Flask server
-        function updateUeCount() {
-            const cellCounts = { cell_1: 0, cell_2: 0, cell_3: 0 };
-
-            ueDots.forEach(dot => {
-                const closestCell = getClosestCell(dot.x, dot.y);
-                cellCounts[closestCell]++;
-            });
-
-            // Update the count in the table
-            document.getElementById("count-cell-1").innerText = cellCounts.cell_1;
-            document.getElementById("count-cell-2").innerText = cellCounts.cell_2;
-            document.getElementById("count-cell-3").innerText = cellCounts.cell_3;
-
-            // Loop through each cell to send the data to Flask
-            Object.entries(cellCounts).forEach(([cellId, count]) => {
-                const postData = { cell_id: cellId, load: count };
-                const trafficSteeringThreshold = parseInt(document.getElementById("threshold").value);
-                const isTrafficSteering = (count >= trafficSteeringThreshold); // Use the threshold for traffic steering
-                const consoleMessage = `POST Cell Load update for ${cellId} with load: ${count}`;
-                
-                // Push message to console
-                postCommands.push({ message: consoleMessage, isTrafficSteering });
-                
-                // Keep only last 10 messages
-                if (postCommands.length > 10) {
-                    postCommands.shift(); // Remove the oldest message
-                }
-
-                // Update console display
-                updateConsole();
-
-                // Display the POST request in the console
-                fetch('http://localhost:5001/cell_load', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(postData)
-                })
-                .then(response => {
-                    if (response.ok) {
-                        console.log(`Successfully sent POST request for ${cellId} with load: ${count}`);
-                    } else {
-                        console.error(`Failed to send POST request for ${cellId} with load: ${count}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Success:', data);
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                });
-            });
-        }
-
-        // Function to create multiple UE dots per second
-        function createUeDots() {
-            if (ueDots.length >= maxDots) return;
-
-            // Generate a random number of dots between 1 and 30
-            const numDots = Math.floor(Math.random() * 30) + 1;
-            for (let i = 0; i < numDots; i++) {
-                const position = generateRandomPosition();
-                const closestCell = getClosestCell(position.x, position.y);
-
-                // Define the dot color based on the closest cell
-                let dotColor;
-                if (closestCell === "cell_1") {
-                    dotColor = '#4caf50';  // Green for Cell 1
-                } else if (closestCell === "cell_2") {
-                    dotColor = '#2196f3';  // Blue for Cell 2
-                } else if (closestCell === "cell_3") {
-                    dotColor = '#f44336';  // Red for Cell 3
-                }
-
-                const dot = document.createElement('div');
-                dot.classList.add('ue-dot');
-                dot.style.backgroundColor = dotColor;  // Set the color of the dot
-                dot.style.left = `${position.x}px`;
-                dot.style.top = `${position.y}px`;
-
-                // Add dot to the display area
-                displayArea.appendChild(dot);
-                ueDots.push({ dot, x: position.x, y: position.y, cell: closestCell });
-            }
-            updateUeCount(); // Update UE count when new dots are added
-        }
-
-        // Function to update console output
-        function updateConsole() {
-            consoleOutput.innerHTML = postCommands.map(cmd => {
-                return cmd.isTrafficSteering ? `Traffic steering needed: ${cmd.message}` : cmd.message;
-            }).join('\n');
-        }
-
-        // Start creating UE dots and updating console periodically
-        setInterval(createUeDots, 1400);
-    
-    // Poll the Flask backend for any traffic steering decisions
-    async function pollSteeringDecision() {
-            try {
-                const response = await fetch('http://127.0.0.1:5001/get_steering_decision');
-                const data = await response.json();
-
-                if (data.status !== "no_decision") {
-                    const { from_cell, to_cell } = data;
-                    if (cellLoadCounts[from_cell] > 0) {
-                        // Transfer UE load from the congested cell to the target cell
-                        cellLoadCounts[from_cell]--;
-                        cellLoadCounts[to_cell]++;
-                        logToConsole(`Steering UE from ${from_cell} to ${to_cell}`);
-                        updateCellLoadDisplay();
-                    }
-                }
-            } catch (error) {
-                console.error("Error polling steering decision:", error);
-            }
-        }
-
-        // Poll for traffic steering decisions every 5 seconds
-        setInterval(pollSteeringDecision, 5000);
-        
+        setInterval(createUeDots, 1000);
     </script>
 </body>
 </html>
