@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cell Traffic Simulator</title>
+    <style>
+        /* Display area styling */
+        #display-area {
+            width: 600px;
+            height: 400px;
+            margin: 50px auto;
+            border: 1px solid #ccc;
+            position: relative;
+            background-color: #f5f5f5;
+            border-radius: 80%;
+            overflow: hidden;
+        }
+
+        /* Cell styling */
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #4caf50;
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        #cell_1 { top: 50px; left: 170px; }
+        #cell_2 { top: 270px; left: 60px; }
+        #cell_3 { top: 270px; right: 60px; }
+
+        /* UE Dot styling */
+        .ue-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            transition: opacity 0.3s;
+        }
+
+        /* Console styling */
+        #console {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            width: 300px;
+            height: 250px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 10px;
+        }
+
+        /* UE Count Table styling */
+        #ue-count-table {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #ue-count-table table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        #ue-count-table th, #ue-count-table td {
+            padding: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2 style="text-align: center;">Cell Traffic Simulator</h2>
+
+    <!-- Console -->
+    <div id="console">
+        <h3>Console Output</h3>
+        <pre id="console-output"></pre>
+    </div>
+
+    <!-- Display Area for Cells -->
+    <div id="display-area">
+        <div id="cell_1" class="cell">Cell 1</div>
+        <div id="cell_2" class="cell">Cell 2</div>
+        <div id="cell_3" class="cell">Cell 3</div>
+    </div>
+
+    <!-- UE Count Table -->
+    <div id="ue-count-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Cell</th>
+                    <th>UE Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Cell 1</td><td id="count-cell-1">0</td></tr>
+                <tr><td>Cell 2</td><td id="count-cell-2">0</td></tr>
+                <tr><td>Cell 3</td><td id="count-cell-3">0</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const displayArea = document.getElementById("display-area");
+        const consoleOutput = document.getElementById("console-output");
+        const cells = {
+            cell_1: { x: 200, y: 80, color: '#4caf50' },
+            cell_2: { x: 100, y: 300, color: '#2196f3' },
+            cell_3: { x: 300, y: 300, color: '#f44336' }
+        };
+        const maxDots = 300;
+        const minVisibleTime = 10000; // 10 seconds in milliseconds
+        let ueDots = [];
+        const cellCounts = { cell_1: 0, cell_2: 0, cell_3: 0 };
+        let postCommands = [];
+
+        // Function to generate a random position around the display area
+        function generateRandomPosition() {
+            return {
+                x: Math.random() * 380 + 10,
+                y: Math.random() * 380 + 10
+            };
+        }
+
+        // Function to calculate the closest cell
+        function getClosestCell(x, y) {
+            let closestCell = null;
+            let minDistance = Infinity;
+            for (const [cellId, cell] of Object.entries(cells)) {
+                const distance = Math.sqrt(Math.pow(cell.x - x, 2) + Math.pow(cell.y - y, 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestCell = cellId;
+                }
+            }
+            return closestCell;
+        }
+
+        // Function to update UE count and send to Flask server
+        function updateUeCount() {
+            const cellCounts = { cell_1: 0, cell_2: 0, cell_3: 0 };
+
+            ueDots.forEach(dot => {
+                const closestCell = getClosestCell(dot.x, dot.y);
+                cellCounts[closestCell]++;
+            });
+
+            // Update the count in the table
+            document.getElementById("count-cell-1").innerText = cellCounts.cell_1;
+            document.getElementById("count-cell-2").innerText = cellCounts.cell_2;
+            document.getElementById("count-cell-3").innerText = cellCounts.cell_3;
+
+            // Loop through each cell to send the data to Flask
+            Object.entries(cellCounts).forEach(([cellId, count]) => {
+                const postData = { cell_id: cellId, load: count };
+                const isTrafficSteering = (cellId === 'cell_1' && count > 100); // Example condition for traffic steering
+                const consoleMessage = `POST request for ${cellId} with load: ${count}`;
+                
+                // Push message to console
+                postCommands.push({ message: consoleMessage, isTrafficSteering });
+                
+                // Keep only last 10 messages
+                if (postCommands.length > 10) {
+                    postCommands.shift(); // Remove the oldest message
+                }
+
+                // Update console display
+                updateConsole();
+
+                // Display the POST request in the console
+                fetch('http://localhost:5001/cell_load', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(postData)
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log(`Successfully sent POST request for ${cellId} with load: ${count}`);
+                    } else {
+                        console.error(`Failed to send POST request for ${cellId} with load: ${count}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+            });
+        }
+
+        // Function to create multiple UE dots per second
+        function createUeDots() {
+            if (ueDots.length >= maxDots) return;
+
+            // Generate a random number of dots between 1 and 50
+            const numDots = Math.floor(Math.random() * 50) + 1;
+            for (let i = 0; i < numDots; i++) {
+                if (ueDots.length >= maxDots) break;
+
+                const { x, y } = generateRandomPosition();
+                const closestCell = getClosestCell(x, y);
+                const ueDot = document.createElement("div");
+                ueDot.classList.add("ue-dot");
+                ueDot.style.left = `${x}px`;
+                ueDot.style.top = `${y}px`;
+                ueDot.style.backgroundColor = cells[closestCell].color;
+                displayArea.appendChild(ueDot);
+
+                // Track dot information with expiration time
+                const expirationTime = Date.now() + minVisibleTime;
+                ueDots.push({ element: ueDot, expirationTime, x, y });
+
+                // Increment the count for the closest cell
+                cellCounts[closestCell]++;
+
+                // Remove the dot after 10 seconds (minVisibleTime)
+                setTimeout(() => {
+                    ueDot.style.opacity = "0"; // Fade out effect
+                    setTimeout(() => {
+                        ueDot.remove();
+                        ueDots = ueDots.filter(dot => dot.element !== ueDot);
+                        cellCounts[closestCell]--;  // Decrement count on removal
+                        updateUeCount(); // Update count after removal
+                    }, 300); // Slight delay for fade-out effect
+                }, minVisibleTime);
+            }
+            updateUeCount(); // Update count after creating new dots
+        }
+
+        // Update the console to display the last 10 POST commands
+        function updateConsole() {
+            consoleOutput.innerHTML = '';
+            postCommands.forEach((entry) => {
+                const messageElement = document.createElement("div");
+                messageElement.textContent = entry.message;
+                if (entry.isTrafficSteering) {
+                    messageElement.style.color = 'red'; // Highlight traffic steering in red
+                }
+                consoleOutput.appendChild(messageElement);
+            });
+        }
+
+        // Generate new UEs every second
+        setInterval(createUeDots, 1200);
+    </script>
+</body>
+</html>
