@@ -7,7 +7,7 @@ let cell_loads = {
     cell_3: 0
 };
 
-const UE_GENERATION_INTERVAL = 1000; // 3 saniye aralıklarla UE üret
+const UE_GENERATION_INTERVAL = 1000; // 1 saniye aralıklarla UE üret
 const UE_LIFESPAN = 10000; // Her UE'nin yaşam süresi 5 saniye
 
 // Rasgele UE üretme fonksiyonu
