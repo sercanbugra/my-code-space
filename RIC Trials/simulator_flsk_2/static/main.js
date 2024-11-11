@@ -7,29 +7,138 @@ let cell_loads = {
     cell_3: 0
 };
 
-const UE_GENERATION_INTERVAL = 1000; // 1 saniye aralıklarla UE üret
-const UE_LIFESPAN = 10000; // Her UE'nin yaşam süresi 5 saniye
+const UE_GENERATION_INTERVAL = 1000; // Generate UE every second
+const UE_LIFESPAN = 10000;           // Each UE lasts 10 seconds
 
-// Rasgele UE üretme fonksiyonu
+// Store the last 20 data points for the sliding window effect
+const cellLoadHistory = {
+    cell_1: [],
+    cell_2: [],
+    cell_3: []
+};
+
+// Array to store steering events to mark on the chart
+let steeringMarkers = [];
+
+// Initialize the chart
+const ctx = document.getElementById('ueCountChart').getContext('2d');
+const ueCountChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [], // Time labels, will be updated dynamically
+        datasets: [
+            {
+                label: 'Cell 1',
+                data: cellLoadHistory.cell_1,
+                borderColor: 'red',
+                fill: false
+            },
+            {
+                label: 'Cell 2',
+                data: cellLoadHistory.cell_2,
+                borderColor: 'blue',
+                fill: false
+            },
+            {
+                label: 'Cell 3',
+                data: cellLoadHistory.cell_3,
+                borderColor: 'green',
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        animation: false,
+        scales: {
+            x: { title: { display: true, text: 'Time' } },
+            y: { beginAtZero: true, title: { display: true, text: 'UE Count' } }
+        },
+        plugins: {
+            annotation: {
+                annotations: steeringMarkers // Add markers to the chart
+            }
+        }
+    }
+});
+
+// Function to update the chart with real-time data
+function updateChart() {
+    const timeLabel = new Date().toLocaleTimeString();
+
+    // Add the current UE count to the history
+    cellLoadHistory.cell_1.push(cell_loads.cell_1);
+    cellLoadHistory.cell_2.push(cell_loads.cell_2);
+    cellLoadHistory.cell_3.push(cell_loads.cell_3);
+
+    // Add the time label and remove older data if we exceed 20 points
+    ueCountChart.data.labels.push(timeLabel);
+    if (ueCountChart.data.labels.length > 20) {
+        ueCountChart.data.labels.shift();
+        cellLoadHistory.cell_1.shift();
+        cellLoadHistory.cell_2.shift();
+        cellLoadHistory.cell_3.shift();
+    }
+
+    // Update the chart datasets
+    ueCountChart.data.datasets[0].data = cellLoadHistory.cell_1;
+    ueCountChart.data.datasets[1].data = cellLoadHistory.cell_2;
+    ueCountChart.data.datasets[2].data = cellLoadHistory.cell_3;
+
+    // Refresh the chart
+    ueCountChart.update();
+}
+
+// Function to generate UEs and update counts
 function generateUE() {
-    const ueCount = Math.floor(Math.random() * 5) + 1; // 1 ile 5 arasında UE sayısı
+    const ueCount = Math.floor(Math.random() * 5) + 1;
     const ueData = [];
     for (let i = 0; i < ueCount; i++) {
         const ueId = `UE_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        const cellId = `cell_${Math.floor(Math.random() * 3) + 1}`; // cell_1, cell_2, cell_3 rastgele seçim
+        const cellId = `cell_${Math.floor(Math.random() * 3) + 1}`;
         ueData.push({ id: ueId, cell: cellId });
-        
-        // UE'yi ilgili hücreye ekleyelim
+
         if (cellId === "cell_1") cell_1_ues.push(ueId);
         else if (cellId === "cell_2") cell_2_ues.push(ueId);
         else if (cellId === "cell_3") cell_3_ues.push(ueId);
+
+        // Generate dot for UE
+        generateUEDot(cellId, ueId);
     }
 
     updateCellCounts();
-    setTimeout(removeUE, UE_LIFESPAN, ueData); // UE'yi 5 saniye sonra kaldır
+    setTimeout(removeUE, UE_LIFESPAN, ueData);
 }
 
-// UE'leri silme fonksiyonu
+// Function to generate UE dot inside a cell's circular area
+function generateUEDot(cellId, ueId) {
+    const radius = 30; // The radius of the cell area where the dot will appear
+    const angle = Math.random() * 2 * Math.PI; // Random angle for position
+    const distance = Math.sqrt(Math.random()) * radius; // Random distance to spread dots within the circle
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+
+    // Create a dot for the UE
+    const dot = document.createElement("div");
+    dot.classList.add("ue-dot");
+    dot.style.left = `calc(50% + ${x}% )`; // Position the dot based on the calculated position
+    dot.style.top = `calc(50% + ${y}% )`; // Position the dot based on the calculated position
+    dot.setAttribute("data-ue-id", ueId);
+    document.getElementById(cellId).appendChild(dot);
+
+    // Track dots by UE ID
+    setTimeout(() => removeUEDot(ueId, dot, cellId), UE_LIFESPAN);
+}
+
+// Function to remove UE dot from the cell
+function removeUEDot(ueId, dot, cellId) {
+    const cell = document.getElementById(cellId);
+    if (cell && dot) {
+        cell.removeChild(dot);
+    }
+}
+
+// Function to remove UEs
 function removeUE(ueData) {
     ueData.forEach(ue => {
         if (ue.cell === "cell_1") {
@@ -46,18 +155,16 @@ function removeUE(ueData) {
     updateCellCounts();
 }
 
-// Hücre yüklerini güncelleme fonksiyonu
+// Update cell counts and refresh the chart
 function updateCellCounts() {
     cell_loads.cell_1 = cell_1_ues.length;
     cell_loads.cell_2 = cell_2_ues.length;
     cell_loads.cell_3 = cell_3_ues.length;
 
-    // Sol üst köşedeki UE sayıları güncelleniyor
     document.getElementById("count-cell-1").innerText = cell_loads.cell_1;
     document.getElementById("count-cell-2").innerText = cell_loads.cell_2;
     document.getElementById("count-cell-3").innerText = cell_loads.cell_3;
 
-    // Hücrelerin load değerlerini JSON formatında konsola yazalım
     const cellLoadData = JSON.stringify({
         "cell_1": cell_loads.cell_1,
         "cell_2": cell_loads.cell_2,
@@ -65,17 +172,21 @@ function updateCellCounts() {
     });
     updateConsole(cellLoadData);
 
-    // Yük aşımı durumunu kontrol et ve POST isteği gönder
+    // Update the chart with the new counts
+    updateChart();
+
+    // Check for steering conditions
     checkTrafficSteering();
 }
 
-// Konsole log yazma
+// Console log function
 function updateConsole(message) {
     const consoleOutput = document.getElementById("console");
-    consoleOutput.innerHTML = message;
+    consoleOutput.innerHTML += message + "\n";
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
 }
 
-// Yük aşımını kontrol etme ve yönlendirme yapma
+// Traffic steering logic with steering markers
 function checkTrafficSteering() {
     Object.keys(cell_loads).forEach(cellId => {
         if (cell_loads[cellId] > 10) {
@@ -87,10 +198,10 @@ function checkTrafficSteering() {
                 const ueToMove = {
                     current_cell: cellId,
                     target_cell: targetCell,
-                    ue_id: `UE_${Date.now()}` // Test için rastgele bir UE ID
+                    ue_id: `UE_${Date.now()}` // Test for a unique UE ID
                 };
 
-                // xApp'e POST isteği gönder
+                // Post to xApp and log steering decision
                 fetch("http://localhost:5001/traffic_steering", {
                     method: "POST",
                     headers: {
@@ -99,12 +210,29 @@ function checkTrafficSteering() {
                     body: JSON.stringify(ueToMove)
                 }).then(response => response.json())
                   .then(data => {
-                      updateConsole(`Steering triggered: Moving ${ueToMove.ue_id} from ${cellId} to ${targetCell}`);
+                      const timeLabel = new Date().toLocaleTimeString();
+                      const logMessage = `Steering triggered: Moving ${ueToMove.ue_id} from ${cellId} to ${targetCell} at ${timeLabel}`;
+                      updateConsole(logMessage);
+
+                      // Add a marker for this steering event on the chart
+                      steeringMarkers.push({
+                          type: 'point',
+                          xValue: timeLabel,
+                          yValue: cell_loads[cellId],
+                          backgroundColor: 'orange',
+                          radius: 5,
+                          label: {
+                              content: `Steer ${cellId}→${targetCell}`,
+                              enabled: true,
+                              position: 'center'
+                          }
+                      });
+                      ueCountChart.update();
                   });
             }
         }
     });
 }
 
-// UE üretimini başlat
-setInterval(generateUE, UE_GENERATION_INTERVAL);  // 3 saniye aralıklarla UE üret
+// Generate UEs periodically
+setInterval(generateUE, UE_GENERATION_INTERVAL);
