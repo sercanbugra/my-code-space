@@ -16,9 +16,9 @@ body, html {
 
 /* Left Panel: Takes up the left side */
 .left-panel {
-    grid-row: 1 / span 2;
+    grid-row: 1 / 2 span;
     background-color: #f5f5f5;
-    padding: 10px;
+    padding: 2px;
     overflow-y: auto;
 }
 
@@ -26,30 +26,38 @@ body, html {
 .right-top-panel {
     grid-column: 2/3;
     background-color: #fff;
-    padding: 10px;
+    padding: 5px;  /* Reduced padding */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    height: 75%;  /* Reduced height */
 }
 
 /* Right Bottom Panel: Triangle layout for cells */
 .right-bottom-panel {
-    grid-column: 1/2;
+    grid-column: 2/3;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     height: 100%;
     background-color: #fafafa;
+    margin-top: -20px; /* Adjust this value to move the cells higher */
+    background-color: #fafafa; /* This will act as a fallback color */
+    background-image: url('map.jpg'); /* Add the path to your JPG image */
+    background-size: cover; /* Ensures the image covers the whole area */
+    background-position: center; /* Centers the image in the panel */
+    background-repeat: no-repeat; /* Prevents repeating the image */
 }
+
 
 /* Cell positions in an equilateral triangle */
 .cell {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background-color: #ddd;
+    position: sticky;
+    width: 50px;
+    height: 50px;
+    background-color: #4a7c9b;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -57,29 +65,29 @@ body, html {
     font-weight: bold;
 }
 
-/* Styling for individual cells' positions */
-#cell_1 { top: 20%; left: 50%; transform: translate(-50%, -50%); }
-#cell_2 { bottom: 20%; left: 20%; transform: translate(-50%, 50%); }
-#cell_3 { bottom: 20%; right: 20%; transform: translate(50%, 50%); }
+/* Cell positions in an equilateral triangle */
+#cell_1 { top: 15%; left: 50%; transform: translate(-50%, -50%); }
+#cell_2 { bottom: 15%; left: 20%; transform: translate(-50%, 50%); }
+#cell_3 { bottom: 15%; right: 20%; transform: translate(50%, 50%); }
 
 /* Styling for UE dots */
 .ue-dot {
     position: absolute;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+    width: 3px;
+    height: 3px;
+    border-radius: 80%;
     background-color: red; /* Default color */
-    animation: fadeOut 1s forwards;
+    animation: fadeOut 15s forwards;
 }
 
 /* Define color for dots based on cell */
 #cell_1 .ue-dot { background-color: red; }
 #cell_2 .ue-dot { background-color: blue; }
-#cell_3 .ue-dot { background-color: green; }
+#cell_3 .ue-dot { background-color: rgb(7, 60, 7); }
 
 /* Animation to fade out UE dots when they expire */
 @keyframes fadeOut {
-    0% { opacity: 1; }
+    30% { opacity: 1; }
     100% { opacity: 0; }
 }
 
@@ -96,7 +104,7 @@ body, html {
 
 /* Styling for the table in the left panel */
 table {
-    width: 100%;
+    width: 80%;
     margin-bottom: 20px;
     border-collapse: collapse;
 }
@@ -114,7 +122,7 @@ td {
 
 /* Container for the chart section */
 .right-top-panel {
-    padding: 20px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -125,18 +133,18 @@ td {
 .left-panel,
 .right-top-panel,
 .right-bottom-panel {
-    padding: 20px;
+    padding: 10px;
 }
 
 /* Labeling and Text Formatting for cells */
 #cell_1, #cell_2, #cell_3 {
-    font-size: 16px;
+    font-size: 13px;
     font-weight: bold;
     color: white;
 }
 
 /* Styling for the cell counts in the table */
 #count-cell-1, #count-cell-2, #count-cell-3 {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: bold;
 }
