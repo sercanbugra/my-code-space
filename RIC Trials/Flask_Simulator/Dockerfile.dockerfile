@@ -18,4 +18,4 @@ ENV FLASK_APP=SimulatorApp.py
 ENV FLASK_ENV=development
 
 # Command to run the Flask app
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5001"]
+CMD ["python", "-m" , "flask", "run", "--host=0.0.0.0"]
