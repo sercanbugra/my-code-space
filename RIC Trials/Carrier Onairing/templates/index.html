@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UE Traffic Simulation</title>
+    <!-- Use Flask's url_for to load static CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <!-- Left Panel: Console and Cell UE Counts -->
+    <div class="left-panel">
+        <h2>Cell UE Counts</h2>
+        <table>
+            <tr><td>Cell 1:</td><td id="count-cell-1">0</td></tr>
+            <tr><td>Cell 2:</td><td id="count-cell-2">0</td></tr>
+            <tr><td>Cell 3:</td><td id="count-cell-3">0</td></tr>
+        </table>
+
+        <h3>Console</h3>
+        <pre id="console" class="console-output"></pre>
+    </div>
+
+    <!-- Right Top Panel: Line Chart -->
+    <div class="right-top-panel">
+        <h2>UE Count Over Time</h2>
+        <canvas id="ueCountChart"></canvas>
+    </div>
+
+    <!-- Right Bottom Panel: Cell Visualization -->
+    <div class="right-bottom-panel">
+        <div id="cell_1" class="cell">Cell 1</div>
+        <div id="cell_2" class="cell">Cell 2</div>
+        <div id="cell_3" class="cell">Cell 3</div>
+    </div>
+</div>
+
+<!-- Use Flask's url_for to load static JS -->
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

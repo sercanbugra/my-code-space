@@ -1,0 +1,150 @@
+/* Set basic styles */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+}
+
+/* Container to hold the layout */
+.container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-template-rows: 1fr 1fr;
+    height: 100%;
+}
+
+/* Left Panel: Takes up the left side */
+.left-panel {
+    grid-row: 1 / 2 span;
+    background-color: #f5f5f5;
+    padding: 2px;
+    overflow-y: auto;
+}
+
+/* Right Top Panel: Chart section */
+.right-top-panel {
+    grid-column: 2/3;
+    background-color: #fff;
+    padding: 5px;  /* Reduced padding */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 75%;  /* Reduced height */
+}
+
+/* Right Bottom Panel: Triangle layout for cells */
+.right-bottom-panel {
+    grid-column: 2/3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    height: 100%;
+    background-color: #fafafa;
+    margin-top: -20px; /* Adjust this value to move the cells higher */
+    background-color: #fafafa; /* This will act as a fallback color */
+    background-image: url('map.jpg'); /* Add the path to your JPG image */
+    background-size: cover; /* Ensures the image covers the whole area */
+    background-position: center; /* Centers the image in the panel */
+    background-repeat: no-repeat; /* Prevents repeating the image */
+}
+
+
+/* Cell positions in an equilateral triangle */
+.cell {
+    position: sticky;
+    width: 50px;
+    height: 50px;
+    background-color: #4a7c9b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Cell positions in an equilateral triangle */
+#cell_1 { top: 15%; left: 50%; transform: translate(-50%, -50%); }
+#cell_2 { bottom: 15%; left: 20%; transform: translate(-50%, 50%); }
+#cell_3 { bottom: 15%; right: 20%; transform: translate(50%, 50%); }
+
+/* Styling for UE dots */
+.ue-dot {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 80%;
+    background-color: red; /* Default color */
+    animation: fadeOut 15s forwards;
+}
+
+/* Define color for dots based on cell */
+#cell_1 .ue-dot { background-color: red; }
+#cell_2 .ue-dot { background-color: blue; }
+#cell_3 .ue-dot { background-color: rgb(7, 60, 7); }
+
+/* Animation to fade out UE dots when they expire */
+@keyframes fadeOut {
+    30% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Styling for the console output */
+.console-output {
+    background-color: #000;
+    color: #0f0;
+    padding: 10px;
+    height: 200px;
+    overflow-y: scroll;
+    white-space: pre-wrap;
+    font-size: 12px;
+}
+
+/* Styling for the table in the left panel */
+table {
+    width: 80%;
+    margin-bottom: 20px;
+    border-collapse: collapse;
+}
+
+td {
+    padding: 5px;
+    border: 1px solid #ddd;
+}
+
+/* Styling for the chart */
+#ueCountChart {
+    width: 100%;
+    height: 100%;
+}
+
+/* Container for the chart section */
+.right-top-panel {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Add some space between the cells and other content */
+.left-panel,
+.right-top-panel,
+.right-bottom-panel {
+    padding: 10px;
+}
+
+/* Labeling and Text Formatting for cells */
+#cell_1, #cell_2, #cell_3 {
+    font-size: 13px;
+    font-weight: bold;
+    color: white;
+}
+
+/* Styling for the cell counts in the table */
+#count-cell-1, #count-cell-2, #count-cell-3 {
+    font-size: 15px;
+    font-weight: bold;
+}
