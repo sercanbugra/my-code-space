@@ -24,26 +24,26 @@ body, html {
 
 /* Right Top Panel: Chart section */
 .right-top-panel {
-    grid-column: 2/3;
+    grid-column: 2 /1 span ;
     background-color: #fff;
     padding: 5px;  /* Reduced padding */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 75%;  /* Reduced height */
+    height: 80%;  /* Reduced height */
 }
 
 /* Right Bottom Panel: Triangle layout for cells */
 .right-bottom-panel {
-    grid-column: 2/3;
+    grid-column: 1 span /2 span;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     height: 100%;
     background-color: #fafafa;
-    margin-top: -20px; /* Adjust this value to move the cells higher */
+    margin-top: -2px; /* Adjust this value to move the cells higher */
     background-color: #fafafa; /* This will act as a fallback color */
     background-image: url('map.jpg'); /* Add the path to your JPG image */
     background-size: cover; /* Ensures the image covers the whole area */
@@ -53,11 +53,8 @@ body, html {
 
 
 /* Cell positions in an equilateral triangle */
-.cell {
-    position: sticky;
-    width: 50px;
-    height: 50px;
-    background-color: #4a7c9b;
+#cell_1, #cell_2, #cell_3, #cell_12, #cell_22, #cell_32 {
+    position: absolute;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -65,10 +62,50 @@ body, html {
     font-weight: bold;
 }
 
-/* Cell positions in an equilateral triangle */
-#cell_1 { top: 15%; left: 50%; transform: translate(-50%, -50%); }
-#cell_2 { bottom: 15%; left: 20%; transform: translate(-50%, 50%); }
-#cell_3 { bottom: 15%; right: 20%; transform: translate(50%, 50%); }
+#cell_12, #cell_22, #cell_32 {
+    width: 80px;
+    height: 80px;
+    background-color: #4a7c9b;
+}
+
+#cell_1, #cell_2, #cell_3 {
+    width: 50px;
+    height: 50px;
+    background-color: #d7ca3f;
+}
+
+
+/* Adjust other cells' positions */
+#cell_1, #cell_12 {
+    top: 30%; /* Slightly adjusted to avoid overlap */
+    left: 30%; /* Horizontal alignment */
+    transform: translate(0px, 50px);
+}
+
+/* Align cells horizontally and vertically */
+#cell_2, #cell_22 {
+    left: 60%; /* Horizontal center */
+    top: 50%; /* Same vertical alignment */
+    
+}
+
+
+
+#cell_3, #cell_32 {
+    top: 10%; /* Slightly adjusted to avoid overlap */
+    left: 50%; /* Horizontal alignment */
+    transform: translate(-50%);
+}
+
+/* Ensure the cells are layered correctly */
+#cell_1, #cell_2, #cell_3 {
+    z-index: 2; /* Higher z-index for top-level cells */
+}
+
+#cell_12, #cell_22, #cell_32 {
+    z-index: 1; /* Lower z-index for bottom-layer cells */
+}
+
 
 /* Styling for UE dots */
 .ue-dot {
@@ -83,7 +120,7 @@ body, html {
 /* Define color for dots based on cell */
 #cell_1 .ue-dot { background-color: red; }
 #cell_2 .ue-dot { background-color: blue; }
-#cell_3 .ue-dot { background-color: rgb(7, 60, 7); }
+#cell_3 .ue-dot { background-color: rgb(110, 184, 110); }
 
 /* Animation to fade out UE dots when they expire */
 @keyframes fadeOut {
@@ -141,6 +178,12 @@ td {
     font-size: 13px;
     font-weight: bold;
     color: white;
+}
+
+#cell_12, #cell_22, #cell_32 {
+    font-size: 10px;
+    font-weight: bold;
+    color: rgb(19, 164, 56);
 }
 
 /* Styling for the cell counts in the table */

@@ -1,10 +1,16 @@
 let cell_1_ues = [];
 let cell_2_ues = [];
 let cell_3_ues = [];
+let cell_12_ues = [];
+let cell_22_ues = [];
+let cell_32_ues = [];
 let cell_loads = {
     cell_1: 0,
     cell_2: 0,
-    cell_3: 0
+    cell_3: 0,
+    cell_12: 0,
+    cell_22: 0,
+    cell_32: 0
 };
 
 const UE_GENERATION_INTERVAL = 1000; // Generate UE every second
@@ -16,7 +22,10 @@ let steeringMarkers = [];            // Store steering events
 const cellLoadHistory = {
     cell_1: [],
     cell_2: [],
-    cell_3: []
+    cell_3: [],
+    cell_12: [],
+    cell_22: [],
+    cell_32: []
 };
 
 let chartUpdateTimeout; // For throttling chart updates
@@ -30,7 +39,10 @@ const ueCountChart = new Chart(ctx, {
         datasets: [
             { label: 'Cell 1', data: cellLoadHistory.cell_1, borderColor: 'red', fill: false },
             { label: 'Cell 2', data: cellLoadHistory.cell_2, borderColor: 'blue', fill: false },
-            { label: 'Cell 3', data: cellLoadHistory.cell_3, borderColor: 'green', fill: false }
+            { label: 'Cell 3', data: cellLoadHistory.cell_3, borderColor: 'green', fill: false },
+            { label: 'Cell 12', data: cellLoadHistory.cell_1, borderColor: 'red', fill: false },
+            { label: 'Cell 22', data: cellLoadHistory.cell_2, borderColor: 'blue', fill: false },
+            { label: 'Cell 32', data: cellLoadHistory.cell_3, borderColor: 'green', fill: false }
         ]
     },
     options: {
@@ -53,6 +65,9 @@ function updateChart() {
     cellLoadHistory.cell_1.push(cell_loads.cell_1);
     cellLoadHistory.cell_2.push(cell_loads.cell_2);
     cellLoadHistory.cell_3.push(cell_loads.cell_3);
+    cellLoadHistory.cell_12.push(cell_loads.cell_12);
+    cellLoadHistory.cell_22.push(cell_loads.cell_22);
+    cellLoadHistory.cell_32.push(cell_loads.cell_32);
 
     ueCountChart.data.labels.push(timeLabel);
 
@@ -61,11 +76,17 @@ function updateChart() {
         cellLoadHistory.cell_1.shift();
         cellLoadHistory.cell_2.shift();
         cellLoadHistory.cell_3.shift();
+        cellLoadHistory.cell_12.shift();
+        cellLoadHistory.cell_22.shift();
+        cellLoadHistory.cell_32.shift();
     }
 
     ueCountChart.data.datasets[0].data = cellLoadHistory.cell_1;
     ueCountChart.data.datasets[1].data = cellLoadHistory.cell_2;
     ueCountChart.data.datasets[2].data = cellLoadHistory.cell_3;
+    ueCountChart.data.datasets[3].data = cellLoadHistory.cell_12;
+    ueCountChart.data.datasets[4].data = cellLoadHistory.cell_22;
+    ueCountChart.data.datasets[5].data = cellLoadHistory.cell_32;
 
     ueCountChart.update();
 }
@@ -102,7 +123,7 @@ function generateUE() {
 
 // Generate UE dot
 function generateUEDot(cellId, ueId) {
-    const radius = 30;
+    const radius = 50;
     const angle = Math.random() * 2 * Math.PI;
     const distance = Math.sqrt(Math.random()) * radius;
     const x = Math.cos(angle) * distance;
@@ -132,14 +153,20 @@ function removeUE(ueData) {
         const index = {
             cell_1: cell_1_ues.indexOf(ue.id),
             cell_2: cell_2_ues.indexOf(ue.id),
-            cell_3: cell_3_ues.indexOf(ue.id)
+            cell_3: cell_3_ues.indexOf(ue.id),
+            cell_12: cell_12_ues.indexOf(ue.id),
+            cell_22: cell_22_ues.indexOf(ue.id),
+            cell_32: cell_32_ues.indexOf(ue.id)
         }[ue.cell];
 
         if (index > -1) {
             ({
                 cell_1: () => cell_1_ues.splice(index, 1),
                 cell_2: () => cell_2_ues.splice(index, 1),
-                cell_3: () => cell_3_ues.splice(index, 1)
+                cell_3: () => cell_3_ues.splice(index, 1),
+                cell_12: () => cell_12_ues.splice(index, 1),
+                cell_22: () => cell_22_ues.splice(index, 1),
+                cell_32: () => cell_32_ues.splice(index, 1)
             }[ue.cell])();
         }
     });
@@ -151,6 +178,9 @@ function updateCellCounts() {
     cell_loads.cell_1 = cell_1_ues.length;
     cell_loads.cell_2 = cell_2_ues.length;
     cell_loads.cell_3 = cell_3_ues.length;
+    cell_loads.cell_12 = cell_12_ues.length;
+    cell_loads.cell_22 = cell_22_ues.length;
+    cell_loads.cell_32 = cell_32_ues.length;
 
     document.getElementById("count-cell-1").innerText = cell_loads.cell_1;
     document.getElementById("count-cell-2").innerText = cell_loads.cell_2;
