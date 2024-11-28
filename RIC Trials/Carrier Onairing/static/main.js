@@ -1,9 +1,12 @@
+// Arrays to hold UEs in each cell
 let cell_1_ues = [];
 let cell_2_ues = [];
 let cell_3_ues = [];
 let cell_12_ues = [];
 let cell_22_ues = [];
 let cell_32_ues = [];
+
+// Object to track cell loads
 let cell_loads = {
     cell_1: 0,
     cell_2: 0,
@@ -13,12 +16,14 @@ let cell_loads = {
     cell_32: 0
 };
 
+// Constants for UE generation and lifespan
 const UE_GENERATION_INTERVAL = 1000; // Generate UE every second
 const UE_LIFESPAN = 10000;           // Each UE lasts 10 seconds
 const STEERING_THRESHOLD = 10;       // Threshold for traffic steering
 const MAX_HISTORY_POINTS = 20;       // Limit for sliding window chart
 let steeringMarkers = [];            // Store steering events
 
+// Cell load history for the chart
 const cellLoadHistory = {
     cell_1: [],
     cell_2: [],
@@ -27,8 +32,6 @@ const cellLoadHistory = {
     cell_22: [],
     cell_32: []
 };
-
-let chartUpdateTimeout; // For throttling chart updates
 
 // Initialize the chart
 const ctx = document.getElementById('ueCountChart').getContext('2d');
@@ -40,9 +43,9 @@ const ueCountChart = new Chart(ctx, {
             { label: 'Cell 1', data: cellLoadHistory.cell_1, borderColor: 'red', fill: false },
             { label: 'Cell 2', data: cellLoadHistory.cell_2, borderColor: 'blue', fill: false },
             { label: 'Cell 3', data: cellLoadHistory.cell_3, borderColor: 'green', fill: false },
-            { label: 'Cell 12', data: cellLoadHistory.cell_1, borderColor: 'red', fill: false },
-            { label: 'Cell 22', data: cellLoadHistory.cell_2, borderColor: 'blue', fill: false },
-            { label: 'Cell 32', data: cellLoadHistory.cell_3, borderColor: 'green', fill: false }
+            { label: 'Cell 12', data: cellLoadHistory.cell_12, borderColor: 'orange', fill: false },
+            { label: 'Cell 22', data: cellLoadHistory.cell_22, borderColor: 'purple', fill: false },
+            { label: 'Cell 32', data: cellLoadHistory.cell_32, borderColor: 'brown', fill: false }
         ]
     },
     options: {
@@ -73,25 +76,18 @@ function updateChart() {
 
     if (ueCountChart.data.labels.length > MAX_HISTORY_POINTS) {
         ueCountChart.data.labels.shift();
-        cellLoadHistory.cell_1.shift();
-        cellLoadHistory.cell_2.shift();
-        cellLoadHistory.cell_3.shift();
-        cellLoadHistory.cell_12.shift();
-        cellLoadHistory.cell_22.shift();
-        cellLoadHistory.cell_32.shift();
+        Object.keys(cellLoadHistory).forEach(key => cellLoadHistory[key].shift());
     }
 
-    ueCountChart.data.datasets[0].data = cellLoadHistory.cell_1;
-    ueCountChart.data.datasets[1].data = cellLoadHistory.cell_2;
-    ueCountChart.data.datasets[2].data = cellLoadHistory.cell_3;
-    ueCountChart.data.datasets[3].data = cellLoadHistory.cell_12;
-    ueCountChart.data.datasets[4].data = cellLoadHistory.cell_22;
-    ueCountChart.data.datasets[5].data = cellLoadHistory.cell_32;
+    ueCountChart.data.datasets.forEach((dataset, i) => {
+        dataset.data = cellLoadHistory[Object.keys(cellLoadHistory)[i]];
+    });
 
     ueCountChart.update();
 }
 
 // Throttle chart updates
+let chartUpdateTimeout;
 function throttleChartUpdate() {
     if (chartUpdateTimeout) return;
     chartUpdateTimeout = setTimeout(() => {
@@ -107,13 +103,19 @@ function generateUE() {
 
     for (let i = 0; i < ueCount; i++) {
         const ueId = `UE_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        const cellId = `cell_${Math.floor(Math.random() * 3) + 1}`;
+        const cellId = `cell_${Math.floor(Math.random() * 6) + 1}`;
         ueData.push({ id: ueId, cell: cellId });
 
-        if (cellId === "cell_1") cell_1_ues.push(ueId);
-        else if (cellId === "cell_2") cell_2_ues.push(ueId);
-        else if (cellId === "cell_3") cell_3_ues.push(ueId);
+        const cellArray = {
+            cell_1: cell_1_ues,
+            cell_2: cell_2_ues,
+            cell_3: cell_3_ues,
+            cell_12: cell_12_ues,
+            cell_22: cell_22_ues,
+            cell_32: cell_32_ues
+        }[cellId];
 
+        cellArray.push(ueId);
         generateUEDot(cellId, ueId);
     }
 
@@ -150,41 +152,39 @@ function removeUEDot(dot, cellId) {
 // Remove UEs
 function removeUE(ueData) {
     ueData.forEach(ue => {
-        const index = {
-            cell_1: cell_1_ues.indexOf(ue.id),
-            cell_2: cell_2_ues.indexOf(ue.id),
-            cell_3: cell_3_ues.indexOf(ue.id),
-            cell_12: cell_12_ues.indexOf(ue.id),
-            cell_22: cell_22_ues.indexOf(ue.id),
-            cell_32: cell_32_ues.indexOf(ue.id)
+        const cellArray = {
+            cell_1: cell_1_ues,
+            cell_2: cell_2_ues,
+            cell_3: cell_3_ues,
+            cell_12: cell_12_ues,
+            cell_22: cell_22_ues,
+            cell_32: cell_32_ues
         }[ue.cell];
-
-        if (index > -1) {
-            ({
-                cell_1: () => cell_1_ues.splice(index, 1),
-                cell_2: () => cell_2_ues.splice(index, 1),
-                cell_3: () => cell_3_ues.splice(index, 1),
-                cell_12: () => cell_12_ues.splice(index, 1),
-                cell_22: () => cell_22_ues.splice(index, 1),
-                cell_32: () => cell_32_ues.splice(index, 1)
-            }[ue.cell])();
-        }
+        const index = cellArray.indexOf(ue.id);
+        if (index > -1) cellArray.splice(index, 1);
     });
     updateCellCounts();
 }
 
 // Update cell counts
 function updateCellCounts() {
-    cell_loads.cell_1 = cell_1_ues.length;
-    cell_loads.cell_2 = cell_2_ues.length;
-    cell_loads.cell_3 = cell_3_ues.length;
-    cell_loads.cell_12 = cell_12_ues.length;
-    cell_loads.cell_22 = cell_22_ues.length;
-    cell_loads.cell_32 = cell_32_ues.length;
+    Object.keys(cell_loads).forEach(key => {
+        cell_loads[key] = {
+            cell_1: cell_1_ues.length,
+            cell_2: cell_2_ues.length,
+            cell_3: cell_3_ues.length,
+            cell_12: cell_12_ues.length,
+            cell_22: cell_22_ues.length,
+            cell_32: cell_32_ues.length
+        }[key];
+    });
 
     document.getElementById("count-cell-1").innerText = cell_loads.cell_1;
     document.getElementById("count-cell-2").innerText = cell_loads.cell_2;
     document.getElementById("count-cell-3").innerText = cell_loads.cell_3;
+    document.getElementById("count-cell-12").innerText = cell_loads.cell_12;
+    document.getElementById("count-cell-22").innerText = cell_loads.cell_22;
+    document.getElementById("count-cell-32").innerText = cell_loads.cell_32;
 
     updateConsole(JSON.stringify(cell_loads));
     throttleChartUpdate();
@@ -207,21 +207,36 @@ function checkTrafficSteering() {
             }, cellId);
 
             if (targetCell !== cellId) {
-                const ueToMove = {
-                    current_cell: cellId,
-                    target_cell: targetCell,
-                    ue_id: `UE_${Date.now()}`
-                };
+                // Find and move a UE from source cell to target cell
+                const sourceArray = {
+                    cell_1: cell_1_ues,
+                    cell_2: cell_2_ues,
+                    cell_3: cell_3_ues,
+                    cell_12: cell_12_ues,
+                    cell_22: cell_22_ues,
+                    cell_32: cell_32_ues
+                }[cellId];
 
-                fetch("http://localhost:5001/traffic_steering", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(ueToMove)
-                })
-                .then(response => response.json())
-                .then(() => {
+                const targetArray = {
+                    cell_1: cell_1_ues,
+                    cell_2: cell_2_ues,
+                    cell_3: cell_3_ues,
+                    cell_12: cell_12_ues,
+                    cell_22: cell_22_ues,
+                    cell_32: cell_32_ues
+                }[targetCell];
+
+                if (sourceArray.length > 0) {
+                    const movedUE = sourceArray.pop(); // Remove UE from source cell
+                    targetArray.push(movedUE);         // Add UE to target cell
+
+                    // Update cell loads
+                    cell_loads[cellId]--;
+                    cell_loads[targetCell]++;
+
+                    // Log the steering event
                     const timeLabel = new Date().toLocaleTimeString();
-                    updateConsole(`Steering triggered: ${cellId} → ${targetCell}`);
+                    updateConsole(`Steering UE (${movedUE}) from ${cellId} to ${targetCell}`);
                     steeringMarkers.push({
                         type: 'point',
                         xValue: timeLabel,
@@ -231,15 +246,12 @@ function checkTrafficSteering() {
                         label: { content: `${cellId}→${targetCell}`, enabled: true }
                     });
                     ueCountChart.update();
-                })
-                .catch(error => {
-                    console.error("Traffic Steering Error:", error);
-                    updateConsole("Error: " + error.message);
-                });
+                }
             }
         }
     });
 }
 
-// Periodic UE generation
+
+// Start generating UEs
 setInterval(generateUE, UE_GENERATION_INTERVAL);

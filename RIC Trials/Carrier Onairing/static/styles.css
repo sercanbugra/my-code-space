@@ -187,7 +187,6 @@ td {
 }
 
 /* Styling for the cell counts in the table */
-#count-cell-1, #count-cell-2, #count-cell-3 {
+#count-cell-1, #count-cell-2, #count-cell-3, #count-cell-12, #count-cell-22, #count-cell-32 {
     font-size: 15px;
-    font-weight: bold;
 }
