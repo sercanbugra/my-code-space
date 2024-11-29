@@ -200,54 +200,85 @@ function updateConsole(message) {
 
 // Traffic steering
 function checkTrafficSteering() {
+    // Define the cell correlations
+    const cellCorrelation = {
+        cell_1: "cell_12",
+        cell_12: "cell_1",
+        cell_2: "cell_22",
+        cell_22: "cell_2",
+        cell_3: "cell_32",
+        cell_32: "cell_3"
+    };
+
+    // Define site limits
+    const SITE_LIMIT = 20; // Maximum total UEs per site
+    const PRIMARY_LIMIT = 15;
+    const SECONDARY_LIMIT = 5;
+
+    // Define site mappings
+    const sites = {
+        SiteA: ["cell_1", "cell_12"],
+        SiteB: ["cell_2", "cell_22"],
+        SiteC: ["cell_3", "cell_32"]
+    };
+
     Object.keys(cell_loads).forEach(cellId => {
-        if (cell_loads[cellId] > STEERING_THRESHOLD) {
-            const targetCell = Object.keys(cell_loads).reduce((minCell, cell) => {
-                return cell_loads[cell] < cell_loads[minCell] ? cell : minCell;
-            }, cellId);
+        // Determine site and target cell
+        const targetCell = cellCorrelation[cellId];
+        const site = Object.entries(sites).find(([_, cells]) => cells.includes(cellId))[0];
 
-            if (targetCell !== cellId) {
-                // Find and move a UE from source cell to target cell
-                const sourceArray = {
-                    cell_1: cell_1_ues,
-                    cell_2: cell_2_ues,
-                    cell_3: cell_3_ues,
-                    cell_12: cell_12_ues,
-                    cell_22: cell_22_ues,
-                    cell_32: cell_32_ues
-                }[cellId];
+        // Calculate total site load
+        const siteLoad = sites[site].reduce((total, cell) => total + cell_loads[cell], 0);
 
-                const targetArray = {
-                    cell_1: cell_1_ues,
-                    cell_2: cell_2_ues,
-                    cell_3: cell_3_ues,
-                    cell_12: cell_12_ues,
-                    cell_22: cell_22_ues,
-                    cell_32: cell_32_ues
-                }[targetCell];
+        if (
+            cell_loads[cellId] > STEERING_THRESHOLD && 
+            siteLoad < SITE_LIMIT && 
+            targetCell && 
+            cell_loads[targetCell] < (targetCell.endsWith("2") ? SECONDARY_LIMIT : PRIMARY_LIMIT)
+        ) {
+            // Find and move a UE from the source cell to the target cell
+            const sourceArray = {
+                cell_1: cell_1_ues,
+                cell_2: cell_2_ues,
+                cell_3: cell_3_ues,
+                cell_12: cell_12_ues,
+                cell_22: cell_22_ues,
+                cell_32: cell_32_ues
+            }[cellId];
 
-                if (sourceArray.length > 0) {
-                    const movedUE = sourceArray.pop(); // Remove UE from source cell
-                    targetArray.push(movedUE);         // Add UE to target cell
+            const targetArray = {
+                cell_1: cell_1_ues,
+                cell_2: cell_2_ues,
+                cell_3: cell_3_ues,
+                cell_12: cell_12_ues,
+                cell_22: cell_22_ues,
+                cell_32: cell_32_ues
+            }[targetCell];
 
-                    // Update cell loads
-                    cell_loads[cellId]--;
-                    cell_loads[targetCell]++;
+            if (sourceArray.length > 0) {
+                const movedUE = sourceArray.pop(); // Remove UE from source cell
+                targetArray.push(movedUE);         // Add UE to target cell
 
-                    // Log the steering event
-                    const timeLabel = new Date().toLocaleTimeString();
-                    updateConsole(`Steering UE (${movedUE}) from ${cellId} to ${targetCell}`);
-                    steeringMarkers.push({
-                        type: 'point',
-                        xValue: timeLabel,
-                        yValue: cell_loads[cellId],
-                        backgroundColor: 'orange',
-                        radius: 5,
-                        label: { content: `${cellId}→${targetCell}`, enabled: true }
-                    });
-                    ueCountChart.update();
-                }
+                // Update cell loads
+                cell_loads[cellId]--;
+                cell_loads[targetCell]++;
+
+                // Log the steering event
+                const timeLabel = new Date().toLocaleTimeString();
+                updateConsole(`Steering UE (${movedUE}) from ${cellId} to ${targetCell}`);
+                steeringMarkers.push({
+                    type: 'point',
+                    xValue: timeLabel,
+                    yValue: cell_loads[cellId],
+                    backgroundColor: 'orange',
+                    radius: 5,
+                    label: { content: `${cellId}→${targetCell}`, enabled: true }
+                });
+                ueCountChart.update();
             }
+        } else if (siteLoad >= SITE_LIMIT) {
+            // Log if the site is at capacity
+            updateConsole(`Site ${site} is at capacity (${siteLoad} UEs). No additional UEs can be assigned.`);
         }
     });
 }
