@@ -23,6 +23,11 @@ const STEERING_THRESHOLD = 10;       // Threshold for traffic steering
 const MAX_HISTORY_POINTS = 20;       // Limit for sliding window chart
 let steeringMarkers = [];            // Store steering events
 
+    // Define site limits
+const SITE_LIMIT = 20; // Maximum total UEs per site
+const PRIMARY_LIMIT = 15;
+const SECONDARY_LIMIT = 5;
+
 // Cell load history for the chart
 const cellLoadHistory = {
     cell_1: [],
@@ -210,10 +215,7 @@ function checkTrafficSteering() {
         cell_32: "cell_3"
     };
 
-    // Define site limits
-    const SITE_LIMIT = 20; // Maximum total UEs per site
-    const PRIMARY_LIMIT = 15;
-    const SECONDARY_LIMIT = 5;
+
 
     // Define site mappings
     const sites = {
